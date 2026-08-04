@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>Market Listem</title>
+  <meta name="description" content="Alışveriş listesi, fiyat geçmişi ve kart kampanyası takibi" />
+
+  <!-- PWA -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#1F7A5C" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Market Listem" />
+  <link rel="icon" href="./icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind (Play CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- React 18 -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+
+  <!-- Babel (tarayıcıda JSX çevirisi için) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Google ile giriş (isteğe bağlı bulut senkronu için) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <style>
+    html, body { background: #F2F4F1; margin: 0; padding: 0; }
+    #kok { min-height: 100dvh; }
+    * { -webkit-tap-highlight-color: transparent; }
+  </style>
+</head>
+<body>
+  <div id="kok">
+    <div style="display:flex; align-items:center; justify-content:center; min-height:100dvh; color:#7C8A82; font-family: sans-serif; font-size: 13px;">
+      Yükleniyor…
+    </div>
+  </div>
+
+  <!-- window.storage polyfill: verileri cihazda localStorage üzerinde saklar -->
+  <script src="./storage-polyfill.js"></script>
+
+  <!-- İsteğe bağlı Google Drive bulut senkronu -->
+  <script src="./sync-drive.js"></script>
+
+  <!-- Bağımsız (CDN'siz) ikon seti -->
+  <script type="text/babel" data-presets="react" src="./icons.jsx"></script>
+
+  <!-- Uygulamanın kendisi -->
+  <script type="text/babel" data-presets="react" src="./app.jsx"></script>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js").catch(() => {});
+      });
+    }
+  </script>
+</body>
+</html>
