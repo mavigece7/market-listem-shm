@@ -1,4 +1,9 @@
-const ONBELLEK_ADI = "market-listem-v1";
+// v2: CDN dosyalarını (React, Babel, Tailwind) artık önbelleğe zorla almaya
+// çalışmıyoruz — bu, "opaque response" hatasına ve React'in hiç yüklenmemesine
+// yol açıyordu. Şimdi sadece KENDİ sitemizden (aynı origin) gelen istekleri
+// önbelleğe alıyoruz; CDN, font, tarayıcı eklentisi vb. her şeyi olduğu gibi
+// tarayıcıya bırakıyoruz.
+const ONBELLEK_ADI = "market-listem-v2";
 
 const YEREL_DOSYALAR = [
   "./",
@@ -13,28 +18,12 @@ const YEREL_DOSYALAR = [
   "./icons/icon-maskable-512.png",
 ];
 
-// CDN'den yüklenen (React, Babel vb.) dosyaları da önbelleğe alıp
-// internet olmadığında da uygulamanın açılmasını sağlıyoruz.
-const CDN_DOSYALAR = [
-  "https://unpkg.com/react@18/umd/react.production.min.js",
-  "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js",
-  "https://unpkg.com/@babel/standalone/babel.min.js",
-  "https://cdn.tailwindcss.com",
-];
-
 self.addEventListener("install", (e) => {
   e.waitUntil(
-    caches.open(ONBELLEK_ADI).then(async (onbellek) => {
-      await onbellek.addAll(YEREL_DOSYALAR);
-      // CDN dosyaları başarısız olursa kurulumu engellemesin
-      await Promise.all(
-        CDN_DOSYALAR.map((url) =>
-          fetch(url, { mode: "no-cors" })
-            .then((r) => onbellek.put(url, r))
-            .catch(() => {})
-        )
-      );
-    })
+    caches
+      .open(ONBELLEK_ADI)
+      .then((onbellek) => onbellek.addAll(YEREL_DOSYALAR))
+      .catch(() => {})
   );
   self.skipWaiting();
 });
@@ -49,14 +38,30 @@ self.addEventListener("activate", (e) => {
 });
 
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET") return;
+  const istek = e.request;
+  if (istek.method !== "GET") return;
+
+  let url;
+  try {
+    url = new URL(istek.url);
+  } catch (err) {
+    return;
+  }
+
+  // Sadece aynı origin'den (kendi sitemiz) gelen istekleri ele alıyoruz.
+  // CDN (unpkg, tailwind, google vb.) ve tarayıcı eklentisi istekleri
+  // (chrome-extension://) service worker'a hiç uğramadan normal şekilde gider.
+  if (url.origin !== self.location.origin) return;
+
   e.respondWith(
-    caches.match(e.request).then((yanit) => {
-      if (yanit) return yanit;
-      return fetch(e.request)
+    caches.match(istek).then((onbellekYaniti) => {
+      if (onbellekYaniti) return onbellekYaniti;
+      return fetch(istek)
         .then((agYaniti) => {
-          const kopya = agYaniti.clone();
-          caches.open(ONBELLEK_ADI).then((onbellek) => onbellek.put(e.request, kopya));
+          if (agYaniti && agYaniti.ok) {
+            const kopya = agYaniti.clone();
+            caches.open(ONBELLEK_ADI).then((onbellek) => onbellek.put(istek, kopya));
+          }
           return agYaniti;
         })
         .catch(() => caches.match("./index.html"));
